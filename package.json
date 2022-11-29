@@ -1,0 +1,18 @@
+{
+  "name": "genie",
+  "version": "1.0.0",
+  "description": "Friendly neighborhood Genie",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "heckerfr0d",
+  "license": "ISC",
+  "dependencies": {
+    "fluent-ffmpeg": "^2.1.2",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.16.2",
+    "ytdl-core": "^4.10.1",
+    "ytsr": "^3.6.0"
+  }
+}
