@@ -30,13 +30,13 @@ client.on('ready', async () => {
     console.log('Client is ready!');
 });
 
-let sendSticker = async (msg) => {
+let sendSticker = async (msg, sms) => {
     const media = await msg.downloadMedia();
     if (media.mimetype && (media.mimetype.includes("image") || media.mimetype.includes("video"))) {
         const result = msg.body.match(regexp);
         const author = result ? result[3] ? result[2] : result[1] : "🧞️";
         const name = result ? result[3] ? result[3] : result[2] : "annen";
-        await msg.reply(media, msg.from, { sendMediaAsSticker: true, stickerAuthor: author, stickerName: name });
+        await msg.reply(media, msg.from, { sendMediaAsSticker: sms, stickerAuthor: author, stickerName: name });
     }
 }
 
@@ -108,12 +108,7 @@ client.on('message', async msg => {
                     msg.reply("sorry, couldn't get that");
                     console.error(err);
                 }
-                fs.unlink(`./${title}.mp3`, (err) => {
-                    if (err) {
-                        console.error(err);
-                        return;
-                    }
-                });
+                fs.unlinkSync(`./${title}.mp3`);
             }
         });
     }
@@ -123,12 +118,13 @@ client.on('message', async msg => {
         // const chat = await msg.getChat();
         if (chat.isGroup && !(msg.mentionedIds.includes('971507574782@c.us')))
             return;
-        sendSticker(msg);
+        sendSticker(msg, true);
     }
 
     else if (msg.hasQuotedMsg && (await msg.getQuotedMessage()).hasMedia && msg.mentionedIds.includes('971507574782@c.us')) {
         const quotedMsg = await msg.getQuotedMessage();
-        sendSticker(quotedMsg);
+        let sms = !msg.body.includes('ss');
+        sendSticker(quotedMsg, sms);
     }
 
     
