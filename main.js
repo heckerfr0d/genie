@@ -83,16 +83,16 @@ client.on('message', async msg => {
         audio.on('info', (info) => {
             title = info.videoDetails.title.replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ");
             if (msg.body.startsWith(".p ")) {
-                ffmpeg(audio).audioCodec('opus').save(`./${title}.ogg`).on('end', async () => {
-                    const media = MessageMedia.fromFilePath(`./${title}.ogg`);
+                ffmpeg(audio).save(`./${title}.mp3`).on('end', async () => {
+                    const media = MessageMedia.fromFilePath(`./${title}.mp3`);
                     try {
-                        await msg.reply(media, msg.from, { sendAudioAsVoice: true });
+                        await msg.reply(media, msg.from, { sendAudioAsVoice: false });
                     }
                     catch (err) {
                         msg.reply("sorry, couldn't get that");
                         console.error(err);
                     }
-                    fs.unlinkSync(`./${title}.ogg`);
+                    fs.unlinkSync(`./${title}.mp3`);
                 });
             }
             else
