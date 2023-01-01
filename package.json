@@ -9,6 +9,7 @@
   "author": "heckerfr0d",
   "license": "ISC",
   "dependencies": {
+    "@iamtraction/google-translate": "^2.0.1",
     "fluent-ffmpeg": "^2.1.2",
     "qrcode-terminal": "^0.12.0",
     "whatsapp-web.js": "^1.16.2",
