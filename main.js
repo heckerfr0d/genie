@@ -136,9 +136,9 @@ client.on('message', async msg => {
 
 
     else if (msg.hasMedia && !msg.isStatus) {
-        await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
         if (chat.isGroup && !(msg.mentionedIds.includes('971507574782@c.us')))
             return;
+        await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
         sendSticker(msg, true);
     }
 
