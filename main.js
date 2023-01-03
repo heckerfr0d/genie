@@ -5,6 +5,7 @@ const ytdl = require('ytdl-core');
 const ytsr = require('ytsr');
 const ffmpeg = require('fluent-ffmpeg');
 const translate = require('@iamtraction/google-translate');
+const googleTTS = require('google-tts-api');
 const regexp = /(@\d{12} )?(.*):(.*)/;
 const rxns = ['😌️','😉️','❤️','👌️','🤏️','✌️','🤙️','🫰️','👍️','🤝️','🫂️'];
 
@@ -41,6 +42,20 @@ let sendSticker = async (msg, sms) => {
     }
 }
 
+let sendtts = (msg, text, iso) => {
+    googleTTS.getAudioBase64(text, {
+        lang: iso,
+        slow: false,
+        host: 'https://translate.google.com',
+        timeout: 50000,
+    })
+    .then(b64 => {
+        const media =  new MessageMedia('audio/mp3', b64);
+        msg.reply(media, msg.from, { sendAudioAsVoice: true });
+    })
+    .catch(console.error);
+}
+
 client.on('message', async msg => {
     const chat = await msg.getChat();
     if (!chat.isGroup) {
@@ -73,8 +88,8 @@ client.on('message', async msg => {
     }
 
     else if (msg.body.startsWith(".p ") || msg.body.startsWith(".d ")) {
-        await chat.sendStateRecording();
         await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
+        await chat.sendStateRecording();
         const param = msg.body.split(" ");
         let url = param[1], title;
         if (!ytdl.validateURL(url)) {
@@ -120,17 +135,44 @@ client.on('message', async msg => {
     }
 
     else if (msg.body.startsWith(".tr ")) {
-        await chat.sendStateTyping();
         await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
+        await chat.sendStateTyping();
+        const param = msg.body.split(" ");
+        const iso = translate.languages.getISOCode(param[1].toLowerCase());
         if(msg.hasQuotedMsg) {
-            const param = msg.body.split(" ");
-            const lang = param[1];
             const quotedMsg = await msg.getQuotedMessage();
-            translate(quotedMsg.body, {to: translate.languages.getISOCode(lang.toLowerCase())}).then(res => {
+            translate(quotedMsg.body, {to: iso}).then(res => {
                 msg.reply(res.text, msg.from);
-            }).catch(err => {
-                console.error(err);
-            });
+                if (param.length>2 && param[2] == "tts") {
+                    chat.sendStateRecording();
+                    sendtts(msg, res.text, iso);
+                }
+            }).catch(console.error);
+        }
+        else if (param.length > 2) {
+            const iso = translate.languages.getISOCode(param[1].toLowerCase());
+            const endi = param.pop() == "tts" ? msg.body.length-3 : undefined;
+            translate(msg.body.slice(4+param[1].length, endi), {to: iso}).then(res => {
+                msg.reply(res.text, msg.from);
+                if (endi) {
+                    chat.sendStateRecording();
+                    sendtts(msg, res.text, iso);
+                }
+            }).catch(console.error);
+        }
+    }
+
+    else if (msg.body.startsWith(".tts ")) {
+        await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
+        chat.sendStateRecording();
+        const param = msg.body.split(" ");
+        const iso = translate.languages.getISOCode(param[1].toLowerCase());
+        if (msg.hasQuotedMsg) {
+            const quotedMsg = await msg.getQuotedMessage();
+            sendtts(msg, quotedMsg.body, iso);
+        }
+        else if (param.length > 2) {
+            sendtts(msg, msg.body.slice(5+param[1].length), iso);
         }
     }
 
