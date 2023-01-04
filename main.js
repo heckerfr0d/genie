@@ -67,11 +67,13 @@ client.on('message', async msg => {
     if (msg.body.startsWith(".help")) {
         await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
         const helptext = `Know what you wish for:
-        \n1. Send an image/video/gif (tag me if in group) and I'll make a sticker for you (specify author:stickername in the image caption to make the sticker with that data)
-        \n2. Tag me and say _ss_ on a view once image and I'll send it normally.
-        \n3. Send a message in the format \`\`\`.p <query>\`\`\` and I'll scour youtube and send you the audio of the first result.
-        \n4. Send a message in the format \`\`\`.d <query>\`\`\` and I'll scour youtube and send you the first result audio as a document.
-        \n5. Add me to a group, make me an admin and send a message to the group in the format \`\`\`.a number1 number2...\`\`\` to add the numbers to the group.`
+        \n1. _@genie_ on an image/gif/video to make it a sticker.
+        \n2. _@genie ss_ on an image/gif/video to send it back.
+        \n3. _.p query|link_ to get the audio of first result on youtube.
+        \n4. _.d query|link_ to get it as a document.
+        \n5. _.tr target_language [text if not quoted] [tts]_ to translate quoted/given text to target language [and speak].
+        \n6. _.tts language [text if not quoted]_ to speak the quoted/given text in the language.
+        \n5. _.a number1 [number2...]_ to add the numbers to the group. (I have to be admin)`
         await msg.reply(helptext, msg.from);
     }
 
