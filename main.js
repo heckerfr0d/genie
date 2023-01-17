@@ -13,10 +13,14 @@ const rxns = ['😌️','😉️','❤️','👌️','🤏️','✌️','🤙️
 const client = new Client({
     // clientId: 'remote'
     authStrategy: new LocalAuth(),
-    // puppeteer: {
-    //     headless: false,
-    //     executablePath: '/usr/bin/google-chrome-stable',
-    // }
+     puppeteer: {
+         headless: true,
+         executablePath: '/usr/bin/chromium-browser',
+	 args: [
+		 '--no-sandbox',
+		 '--disable-setuid-sandbox'
+	 ]
+     }
 });
 
 // Save session values to the file upon successful auth
