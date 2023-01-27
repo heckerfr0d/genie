@@ -1,0 +1,16 @@
+[Unit]
+Description=genie
+After=network.target
+
+[Service]
+Type=simple
+User=genie
+Group=genie
+WorkingDirectory=/home/genie/genie
+ExecStart=/home/genie/.nvm/versions/node/v19.4.0/bin/node /home/genie/genie/main.js
+TimeoutStartSec=15
+Restart=always
+
+[Install]
+WantedBy=network.target
+
