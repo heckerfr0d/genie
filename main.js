@@ -1,25 +1,27 @@
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const fs = require('fs');
-const ytdl = require('ytdl-core');
+// const ytdl = require('ytdl-core');
 const ytsr = require('ytsr');
-const ffmpeg = require('fluent-ffmpeg');
+const youtubedl = require('youtube-dl-exec')
+// const ffmpeg = require('fluent-ffmpeg');
 const translate = require('@iamtraction/google-translate');
 const googleTTS = require('google-tts-api');
 const regexp = /(@\d{12} )?(.*):(.*)/;
 const rxns = ['😌️','😉️','❤️','👌️','🤏️','✌️','🤙️','🫰️','👍️','🤝️','🫂️'];
+let id = 0;
 
 // Use the saved values
 const client = new Client({
     // clientId: 'remote'
     authStrategy: new LocalAuth(),
      puppeteer: {
-         headless: true,
-         executablePath: '/usr/bin/chromium-browser',
-	 args: [
-		 '--no-sandbox',
-		 '--disable-setuid-sandbox'
-	 ]
+        headless: true,
+        executablePath: '/usr/bin/chromium-browser',
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox'
+        ]
      }
 });
 
@@ -34,6 +36,8 @@ client.on('qr', qr => {
 
 client.on('ready', async () => {
     console.log('Client is ready!');
+    // const media = MessageMedia.fromFilePath(`./result2.mp4`);
+    // client.sendMessage('918921283149@c.us', media, {sendMediaAsDocument:true});
 });
 
 let sendSticker = async (msg, sms) => {
@@ -74,7 +78,7 @@ client.on('message', async msg => {
         \n1. _@genie_ on an image/gif/video to make it a sticker.
         \n2. _@genie ss_ on an image/gif/video to send it back.
         \n3. _.p query|link_ to get the audio of first result on youtube.
-        \n4. _.d query|link_ to get it as a document.
+        \n4. _.d query|link_ to extract and send video from any link.
         \n5. _.tr target_language [text if not quoted] [tts]_ to translate quoted/given text to target language [and speak].
         \n6. _.tts language [text if not quoted]_ to speak the quoted/given text in the language.
         \n5. _.a number1 [number2...]_ to add the numbers to the group. (I have to be admin)`
@@ -95,10 +99,9 @@ client.on('message', async msg => {
 
     else if (msg.body.startsWith(".p ") || msg.body.startsWith(".d ")) {
         await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
-        await chat.sendStateRecording();
         const param = msg.body.split(" ");
-        let url = param[1], title;
-        if (!ytdl.validateURL(url)) {
+        let url = param[1];
+        if (!url.startsWith("http")) {
             const query = msg.body.slice(3);
             const filter = await ytsr.getFilters(query);
             const options = filter.get('Type').get('Video');
@@ -106,38 +109,73 @@ client.on('message', async msg => {
             const video = searchResults.items[0];
             url = video.url;
         }
-        const audio = ytdl(url, { quality: 'highestaudio' });
-        audio.on('info', (info) => {
-            title = info.videoDetails.title.replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ");
-            if (msg.body.startsWith(".p ")) {
-                ffmpeg(audio).save(`./${title}.mp3`).on('end', async () => {
-                    const media = MessageMedia.fromFilePath(`./${title}.mp3`);
-                    try {
-                        await msg.reply(media, msg.from, { sendAudioAsVoice: false });
-                    }
-                    catch (err) {
-                        msg.reply("sorry, couldn't get that");
-                        console.error(err);
-                    }
-                    fs.unlinkSync(`./${title}.mp3`);
-                });
+        let basename = `result${id++}`;
+        let opts = { noCheckCertificates: true, output: `${basename}.%(ext)s`, cookies: "./cookies.txt" }
+        if (msg.body.startsWith(".p ")) {
+            await chat.sendStateRecording();
+            opts['extractAudio'] = true;
+            // opts['audioFormat'] = 'mp3';
+        }
+        else
+            opts['maxFilesize'] = '384M';
+        youtubedl(url, opts).then(output => {
+            console.log(output)
+            let filename;
+            fs.readdirSync(__dirname).forEach(file => {
+                if (file.startsWith(basename))
+                    filename = file;
+            });
+            if (filename) {
+                const media = MessageMedia.fromFilePath(`./${filename}`);
+                let opt2 = {}
+                if (msg.body.startsWith(".p "))
+                    opt2['sendAudioAsVoice'] = false;
+                else if (media.filesize > 17000000)
+                    opt2['sendMediaAsDocument'] = true;
+                msg.reply(media, msg.from, opt2);
+                fs.unlinkSync(`./${filename}`);
             }
+        })
+        .catch(err => {
+            console.log(err);
+            if (err.message.contains("Unsupported URL"))
+                msg.reply("Unsupported URL", msg.from);
             else
-                audio.pipe(fs.createWriteStream(`./${title}.mp3`));
+                msg.reply("sorry couldn't get that.", msg.from);
+        });
 
-        });
-        audio.on('finish', async () => {
-            if (msg.body.startsWith(".d ")) {
-                const media = MessageMedia.fromFilePath(`./${title}.mp3`);
-                try {
-                    await msg.reply(media, msg.from, { sendMediaAsDocument:true });
-                } catch (err) {
-                    msg.reply("sorry, couldn't get that");
-                    console.error(err);
-                }
-                fs.unlinkSync(`./${title}.mp3`);
-            }
-        });
+        // const audio = ytdl(url, { quality: 'highestaudio' });
+        // audio.on('info', (info) => {
+        //     title = info.videoDetails.title.replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ");
+        //     if (msg.body.startsWith(".p ")) {
+        //         ffmpeg(audio).save(`./${title}.mp3`).on('end', async () => {
+        //             const media = MessageMedia.fromFilePath(`./${title}.mp3`);
+        //             try {
+        //                 await msg.reply(media, msg.from, { sendAudioAsVoice: false });
+        //             }
+        //             catch (err) {
+        //                 msg.reply("sorry, couldn't get that");
+        //                 console.error(err);
+        //             }
+        //             fs.unlinkSync(`./${title}.mp3`);
+        //         });
+        //     }
+        //     else
+        //         audio.pipe(fs.createWriteStream(`./${title}.mp3`));
+
+        // });
+        // audio.on('finish', async () => {
+        //     if (msg.body.startsWith(".d ")) {
+        //         const media = MessageMedia.fromFilePath(`./${title}.mp3`);
+        //         try {
+        //             await msg.reply(media, msg.from, { sendMediaAsDocument:true });
+        //         } catch (err) {
+        //             msg.reply("sorry, couldn't get that");
+        //             console.error(err);
+        //         }
+        //         fs.unlinkSync(`./${title}.mp3`);
+        //     }
+        // });
     }
 
     else if (msg.body.startsWith(".tr ")) {
@@ -145,27 +183,23 @@ client.on('message', async msg => {
         await chat.sendStateTyping();
         const param = msg.body.split(" ");
         const iso = translate.languages.getISOCode(param[1].toLowerCase());
+        let txt;
+        let endi = undefined;
         if(msg.hasQuotedMsg) {
             const quotedMsg = await msg.getQuotedMessage();
-            translate(quotedMsg.body, {to: iso}).then(res => {
-                msg.reply(res.text, msg.from);
-                if (param.length>2 && param[2] == "tts") {
-                    chat.sendStateRecording();
-                    sendtts(msg, res.text, iso);
-                }
-            }).catch(console.error);
+            txt = quotedMsg.body;
         }
         else if (param.length > 2) {
-            const iso = translate.languages.getISOCode(param[1].toLowerCase());
-            const endi = param.pop() == "tts" ? msg.body.length-3 : undefined;
-            translate(msg.body.slice(4+param[1].length, endi), {to: iso}).then(res => {
-                msg.reply(res.text, msg.from);
-                if (endi) {
-                    chat.sendStateRecording();
-                    sendtts(msg, res.text, iso);
-                }
-            }).catch(console.error);
+            endi = param.pop() == "tts" ? msg.body.length-3 : undefined;
+            txt = msg.body.slice(4+param[1].length, endi)
         }
+        translate(txt, {to: iso}).then(res => {
+            msg.reply(res.text, msg.from);
+            if (endi) {
+                chat.sendStateRecording();
+                sendtts(msg, res.text, iso);
+            }
+        }).catch(console.error);
     }
 
     else if (msg.body.startsWith(".tts ")) {
@@ -180,6 +214,10 @@ client.on('message', async msg => {
         else if (param.length > 2) {
             sendtts(msg, msg.body.slice(5+param[1].length), iso);
         }
+    }
+
+    else if (msg.body.startsWith(".gpt ")) {
+        await msg.reply("coming soon");
     }
 
 

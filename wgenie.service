@@ -4,11 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
-User=genie
-Group=genie
-WorkingDirectory=/home/genie/genie
-ExecStart=/home/genie/.nvm/versions/node/v19.4.0/bin/node /home/genie/genie/main.js
-TimeoutStartSec=15
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/genie
+ExecStart=/home/ubuntu/genie/start.sh
+TimeoutStartSec=0
 Restart=always
 
 [Install]

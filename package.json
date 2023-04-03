@@ -10,11 +10,13 @@
   "license": "ISC",
   "dependencies": {
     "@iamtraction/google-translate": "^2.0.1",
+    "bing-chat": "^0.2.3",
     "fluent-ffmpeg": "^2.1.2",
     "google-tts-api": "^2.0.2",
     "qrcode-terminal": "^0.12.0",
     "whatsapp-web.js": "^1.18.4",
+    "youtube-dl-exec": "^2.4.0",
     "ytdl-core": "^4.10.1",
-    "ytsr": "^3.6.0"
+    "ytsr": "^3.8.1"
   }
 }
