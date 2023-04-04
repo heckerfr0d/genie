@@ -20,7 +20,9 @@ const client = new Client({
         executablePath: '/usr/bin/chromium-browser',
         args: [
             '--no-sandbox',
-            '--disable-setuid-sandbox'
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--shm-size=1gb'
         ]
      }
 });
@@ -98,7 +100,6 @@ client.on('message', async msg => {
     }
 
     else if (msg.body.startsWith(".p ") || msg.body.startsWith(".d ")) {
-        await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
         const param = msg.body.split(" ");
         let url = param[1];
         if (!url.startsWith("http")) {
@@ -109,36 +110,43 @@ client.on('message', async msg => {
             const video = searchResults.items[0];
             url = video.url;
         }
-        let basename = `result${id++}`;
+        let basename = `result${id++%17}`;
         let opts = { noCheckCertificates: true, output: `${basename}.%(ext)s`, cookies: "./cookies.txt" }
         if (msg.body.startsWith(".p ")) {
             await chat.sendStateRecording();
             opts['extractAudio'] = true;
-            // opts['audioFormat'] = 'mp3';
+            opts['audioFormat'] = 'mp3';
         }
         else
-            opts['maxFilesize'] = '384M';
-        youtubedl(url, opts).then(output => {
+        opts['maxFilesize'] = '384M';
+        youtubedl(url, opts).then(async output => {
             console.log(output)
             let filename;
             fs.readdirSync(__dirname).forEach(file => {
                 if (file.startsWith(basename))
-                    filename = file;
+                filename = file;
             });
             if (filename) {
                 const media = MessageMedia.fromFilePath(`./${filename}`);
                 let opt2 = {}
                 if (msg.body.startsWith(".p "))
                     opt2['sendAudioAsVoice'] = false;
-                else if (media.filesize > 17000000)
+                else if (media.data.length > 22666666)
                     opt2['sendMediaAsDocument'] = true;
-                msg.reply(media, msg.from, opt2);
+                msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
+                try {
+                    await msg.reply(media, msg.from, opt2);
+                }
+                catch(err) {
+                    console.log(err);
+                    msg.reply("sorry, couldn't send that");
+                }
                 fs.unlinkSync(`./${filename}`);
             }
         })
         .catch(err => {
             console.log(err);
-            if (err.message.contains("Unsupported URL"))
+            if (err.message.includes("Unsupported URL"))
                 msg.reply("Unsupported URL", msg.from);
             else
                 msg.reply("sorry couldn't get that.", msg.from);
@@ -238,4 +246,4 @@ client.on('message', async msg => {
     
 });
 
-client.initialize();
+client.initialize().catch(_ => _);
