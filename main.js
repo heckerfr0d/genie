@@ -112,20 +112,27 @@ client.on('message', async msg => {
         }
         let basename = `result${id++%17}`;
         let opts = { noCheckCertificates: true, output: `${basename}.%(ext)s`, cookies: "./cookies.txt" }
+	let filename;
         if (msg.body.startsWith(".p ")) {
             await chat.sendStateRecording();
             opts['extractAudio'] = true;
-            opts['audioFormat'] = 'mp3';
+            opts['format'] = 'ba*';
+	    opts['audioFormat'] = 'mp3';
+	    filename = `${basename}.mp3`;
+	    opts['output'] = basename;
         }
-        else
-        opts['maxFilesize'] = '384M';
+        else {
+            opts['maxFilesize'] = '74M';
+	    opts['format'] = 'mp4';
+	}
         youtubedl(url, opts).then(async output => {
             console.log(output)
-            let filename;
-            fs.readdirSync(__dirname).forEach(file => {
-                if (file.startsWith(basename))
-                filename = file;
-            });
+	    if (!filename) {
+            	fs.readdirSync(__dirname).forEach(file => {
+                    if (file.startsWith(basename))
+                	filename = file;
+            	});
+	    }
             if (filename) {
                 const media = MessageMedia.fromFilePath(`./${filename}`);
                 let opt2 = {}
