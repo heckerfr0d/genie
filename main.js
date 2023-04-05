@@ -1,22 +1,24 @@
-import wwebjs from 'whatsapp-web.js';
-const { Client, LocalAuth, MessageMedia } = wwebjs;
 import { BingChat } from 'bing-chat';
 import { oraPromise } from 'ora';
-import qcode from 'qrcode-terminal';
-const { qrcode } = qcode;
+import QRCode from 'qrcode';
 import fs from 'fs';
-// const ytdl = require('ytdl-core');
+import wwebjs from 'whatsapp-web.js';
 import yts from 'ytsr';
-const ytsr = yts;
 import ytdl from 'youtube-dl-exec';
-const { youtubedl } = ytdl;
-// const ffmpeg = require('fluent-ffmpeg');
 import tr from '@iamtraction/google-translate';
-const { translate } = tr;
 import gtts from 'google-tts-api';
+
+const { Client, LocalAuth, MessageMedia } = wwebjs;
+const ytsr = yts;
+const { youtubedl } = ytdl;
+// const ytdl = require('ytdl-core');
+// const ffmpeg = require('fluent-ffmpeg');
+const { translate } = tr;
 const { googleTTS } = gtts;
+
 const regexp = /(@\d{12} )?(.*):(.*)/;
-const rxns = ['😌️','😉️','❤️','👌️','🤏️','✌️','🤙️','🫰️','👍️','🤝️','🫂️'];
+const rxns = ['😌️', '😉️', '❤️', '👌️', '🤏️', '✌️', '🤙️', '🫰️', '👍️', '🤝️', '🫂️'];
+
 let responses = {}
 let id = 0;
 
@@ -24,7 +26,7 @@ let id = 0;
 const client = new Client({
     // clientId: 'remote'
     authStrategy: new LocalAuth(),
-     puppeteer: {
+    puppeteer: {
         headless: true,
         executablePath: '/usr/bin/chromium-browser',
         args: [
@@ -33,7 +35,7 @@ const client = new Client({
             '--disable-dev-shm-usage',
             '--shm-size=1gb'
         ]
-     }
+    }
 });
 
 // Save session values to the file upon successful auth
@@ -42,13 +44,13 @@ client.on('authenticated', () => {
 });
 
 client.on('qr', qr => {
-    qrcode.generate(qr, { small: true });
+    QRCode.toString(qr, { type: 'terminal', small: true }, (err, url) => {
+        console.log(url);
+    });
 });
 
 client.on('ready', async () => {
     console.log('Client is ready!');
-    // const media = MessageMedia.fromFilePath(`./result2.mp4`);
-    // client.sendMessage('918921283149@c.us', media, {sendMediaAsDocument:true});
 });
 
 let sendSticker = async (msg, sms) => {
@@ -68,24 +70,33 @@ let sendtts = (msg, text, iso) => {
         host: 'https://translate.google.com',
         timeout: 50000,
     })
-    .then(b64 => {
-        const media =  new MessageMedia('audio/mp3', b64);
-        msg.reply(media, msg.from, { sendAudioAsVoice: true });
-    })
-    .catch(console.error);
+        .then(b64 => {
+            const media = new MessageMedia('audio/mp3', b64);
+            msg.reply(media, msg.from, { sendAudioAsVoice: true });
+        })
+        .catch(console.error);
+}
+
+let geturl = async query => {
+    const query = msg.body.slice(3);
+    const filter = await ytsr.getFilters(query);
+    const options = filter.get('Type').get('Video');
+    const searchResults = await ytsr(options.url, { limit: 1 });
+    const video = searchResults.items[0];
+    return video.url;
 }
 
 let bing = async (msg, text) => {
     const api = new BingChat({
-      cookie: process.env.BING_COOKIE
+        cookie: process.env.BING_COOKIE
     });
-  
-    const res = await oraPromise(api.sendMessage(text, msg.from in responses? responses[msg.from]: undefined),{
-        text:text
+
+    const res = await oraPromise(api.sendMessage(text, msg.from in responses ? responses[msg.from] : undefined), {
+        text: text
     });
     responses[msg.from] = res;
     msg.reply(res.text, msg.from);
-  }
+}
 
 client.on('message', async msg => {
     const chat = await msg.getChat();
@@ -96,7 +107,7 @@ client.on('message', async msg => {
     }
 
     if (msg.body.startsWith(".help")) {
-        await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
+        await msg.react(rxns[Math.floor(Math.random() * rxns.length)]);
         const helptext = `Know what you wish for:
         \n1. _@genie_ on an image/gif/video to make it a sticker.
         \n2. _@genie ss_ on an image/gif/video to send it back.
@@ -110,7 +121,7 @@ client.on('message', async msg => {
     }
 
     else if (chat.isGroup && msg.body.startsWith(".a ")) {
-        await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
+        await msg.react(rxns[Math.floor(Math.random() * rxns.length)]);
         let numbers = msg.body.replace("+", "").split(" ");
         numbers.shift();
         for (let i in numbers) {
@@ -125,36 +136,31 @@ client.on('message', async msg => {
         const param = msg.body.split(" ");
         let url = param[1];
         if (!url.startsWith("http")) {
-            const query = msg.body.slice(3);
-            const filter = await ytsr.getFilters(query);
-            const options = filter.get('Type').get('Video');
-            const searchResults = await ytsr(options.url, { limit: 1 });
-            const video = searchResults.items[0];
-            url = video.url;
+            url = geturl(msg.body.slice(3));
         }
-        let basename = `result${id++%17}`;
+        let basename = `result${id++ % 17}`;
         let opts = { noCheckCertificates: true, output: `${basename}.%(ext)s`, cookies: "./cookies.txt" }
-	let filename;
+        let filename;
         if (msg.body.startsWith(".p ")) {
             await chat.sendStateRecording();
             opts['extractAudio'] = true;
             opts['format'] = 'ba*';
-	    opts['audioFormat'] = 'mp3';
-	    filename = `${basename}.mp3`;
-	    opts['output'] = basename;
+            opts['audioFormat'] = 'mp3';
+            filename = `${basename}.mp3`;
+            opts['output'] = basename;
         }
         else {
             opts['maxFilesize'] = '74M';
-	    opts['format'] = 'mp4';
-	}
+            opts['format'] = 'mp4';
+        }
         youtubedl(url, opts).then(async output => {
             console.log(output)
-	    if (!filename) {
-            	fs.readdirSync(__dirname).forEach(file => {
+            if (!filename) {
+                fs.readdirSync(__dirname).forEach(file => {
                     if (file.startsWith(basename))
-                	filename = file;
-            	});
-	    }
+                        filename = file;
+                });
+            }
             if (filename) {
                 const media = MessageMedia.fromFilePath(`./${filename}`);
                 let opt2 = {}
@@ -162,24 +168,24 @@ client.on('message', async msg => {
                     opt2['sendAudioAsVoice'] = false;
                 else if (media.data.length > 22666666)
                     opt2['sendMediaAsDocument'] = true;
-                msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
+                msg.react(rxns[Math.floor(Math.random() * rxns.length)]);
                 try {
                     await msg.reply(media, msg.from, opt2);
                 }
-                catch(err) {
+                catch (err) {
                     console.log(err);
                     msg.reply("sorry, couldn't send that");
                 }
                 fs.unlinkSync(`./${filename}`);
             }
         })
-        .catch(err => {
-            console.log(err);
-            if (err.message.includes("Unsupported URL"))
-                msg.reply("Unsupported URL", msg.from);
-            else
-                msg.reply("sorry couldn't get that.", msg.from);
-        });
+            .catch(err => {
+                console.log(err);
+                if (err.message.includes("Unsupported URL"))
+                    msg.reply("Unsupported URL", msg.from);
+                else
+                    msg.reply("sorry couldn't get that.", msg.from);
+            });
 
         // const audio = ytdl(url, { quality: 'highestaudio' });
         // audio.on('info', (info) => {
@@ -216,21 +222,21 @@ client.on('message', async msg => {
     }
 
     else if (msg.body.startsWith(".tr ")) {
-        await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
+        await msg.react(rxns[Math.floor(Math.random() * rxns.length)]);
         await chat.sendStateTyping();
         const param = msg.body.split(" ");
         const iso = translate.languages.getISOCode(param[1].toLowerCase());
         let txt;
         let endi = undefined;
-        if(msg.hasQuotedMsg) {
+        if (msg.hasQuotedMsg) {
             const quotedMsg = await msg.getQuotedMessage();
             txt = quotedMsg.body;
         }
         else if (param.length > 2) {
-            endi = param.pop() == "tts" ? msg.body.length-3 : undefined;
-            txt = msg.body.slice(4+param[1].length, endi)
+            endi = param.pop() == "tts" ? msg.body.length - 3 : undefined;
+            txt = msg.body.slice(4 + param[1].length, endi)
         }
-        translate(txt, {to: iso}).then(res => {
+        translate(txt, { to: iso }).then(res => {
             msg.reply(res.text, msg.from);
             if (endi) {
                 chat.sendStateRecording();
@@ -240,7 +246,7 @@ client.on('message', async msg => {
     }
 
     else if (msg.body.startsWith(".tts ")) {
-        await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
+        await msg.react(rxns[Math.floor(Math.random() * rxns.length)]);
         chat.sendStateRecording();
         const param = msg.body.split(" ");
         const iso = translate.languages.getISOCode(param[1].toLowerCase());
@@ -249,12 +255,12 @@ client.on('message', async msg => {
             sendtts(msg, quotedMsg.body, iso);
         }
         else if (param.length > 2) {
-            sendtts(msg, msg.body.slice(5+param[1].length), iso);
+            sendtts(msg, msg.body.slice(5 + param[1].length), iso);
         }
     }
 
     else if (msg.body.startsWith(".gpt ")) {
-        await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
+        await msg.react(rxns[Math.floor(Math.random() * rxns.length)]);
         chat.sendStateTyping();
         const text = msg.body.slice(5);
         bing(msg, text);
@@ -264,12 +270,12 @@ client.on('message', async msg => {
     else if (msg.hasMedia && !msg.isStatus) {
         if (chat.isGroup && !(msg.mentionedIds.includes('971507574782@c.us')))
             return;
-        await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
+        await msg.react(rxns[Math.floor(Math.random() * rxns.length)]);
         sendSticker(msg, true);
     }
 
     else if (msg.hasQuotedMsg && (await msg.getQuotedMessage()).hasMedia && msg.mentionedIds.includes('971507574782@c.us')) {
-        await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
+        await msg.react(rxns[Math.floor(Math.random() * rxns.length)]);
         const quotedMsg = await msg.getQuotedMessage();
         let sms = !msg.body.includes('ss');
         sendSticker(quotedMsg, sms);
