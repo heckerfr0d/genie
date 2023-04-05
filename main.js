@@ -1,14 +1,23 @@
-const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
-const fs = require('fs');
+import wwebjs from 'whatsapp-web.js';
+const { Client, LocalAuth, MessageMedia } = wwebjs;
+import { BingChat } from 'bing-chat';
+import { oraPromise } from 'ora';
+import qcode from 'qrcode-terminal';
+const { qrcode } = qcode;
+import fs from 'fs';
 // const ytdl = require('ytdl-core');
-const ytsr = require('ytsr');
-const youtubedl = require('youtube-dl-exec')
+import yts from 'ytsr';
+const ytsr = yts;
+import ytdl from 'youtube-dl-exec';
+const { youtubedl } = ytdl;
 // const ffmpeg = require('fluent-ffmpeg');
-const translate = require('@iamtraction/google-translate');
-const googleTTS = require('google-tts-api');
+import tr from '@iamtraction/google-translate';
+const { translate } = tr;
+import gtts from 'google-tts-api';
+const { googleTTS } = gtts;
 const regexp = /(@\d{12} )?(.*):(.*)/;
 const rxns = ['😌️','😉️','❤️','👌️','🤏️','✌️','🤙️','🫰️','👍️','🤝️','🫂️'];
+let responses = {}
 let id = 0;
 
 // Use the saved values
@@ -66,6 +75,18 @@ let sendtts = (msg, text, iso) => {
     .catch(console.error);
 }
 
+let bing = async (msg, text) => {
+    const api = new BingChat({
+      cookie: process.env.BING_COOKIE
+    });
+  
+    const res = await oraPromise(api.sendMessage(text, msg.from in responses? responses[msg.from]: undefined),{
+        text:text
+    });
+    responses[msg.from] = res;
+    msg.reply(res.text, msg.from);
+  }
+
 client.on('message', async msg => {
     const chat = await msg.getChat();
     if (!chat.isGroup) {
@@ -81,9 +102,10 @@ client.on('message', async msg => {
         \n2. _@genie ss_ on an image/gif/video to send it back.
         \n3. _.p query|link_ to get the audio of first result on youtube.
         \n4. _.d query|link_ to extract and send video from any link.
-        \n5. _.tr target_language [text if not quoted] [tts]_ to translate quoted/given text to target language [and speak].
-        \n6. _.tts language [text if not quoted]_ to speak the quoted/given text in the language.
-        \n5. _.a number1 [number2...]_ to add the numbers to the group. (I have to be admin)`
+        \n5. _.gpt query_ to ask the all knowing AI.
+        \n6. _.tr target_language [text if not quoted] [tts]_ to translate quoted/given text to target language [and speak].
+        \n7. _.tts language [text if not quoted]_ to speak the quoted/given text in the language.
+        \n8. _.a number1 [number2...]_ to add the numbers to the group. (I have to be admin)`
         await msg.reply(helptext, msg.from);
     }
 
@@ -232,7 +254,10 @@ client.on('message', async msg => {
     }
 
     else if (msg.body.startsWith(".gpt ")) {
-        await msg.reply("coming soon");
+        await msg.react(rxns[Math.floor(Math.random()*rxns.length)]);
+        chat.sendStateTyping();
+        const text = msg.body.slice(5);
+        bing(msg, text);
     }
 
 
@@ -250,7 +275,7 @@ client.on('message', async msg => {
         sendSticker(quotedMsg, sms);
     }
 
-    
+
 });
 
-client.initialize().catch(_ => _);
+client.initialize().catch(err => console.log(err));

@@ -2,7 +2,8 @@
   "name": "genie",
   "version": "1.0.0",
   "description": "Friendly neighborhood Genie",
-  "main": "sendDoc.js",
+  "main": "main.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -13,6 +14,7 @@
     "bing-chat": "^0.2.3",
     "fluent-ffmpeg": "^2.1.2",
     "google-tts-api": "^2.0.2",
+    "ora": "^6.3.0",
     "qrcode-terminal": "^0.12.0",
     "whatsapp-web.js": "^1.18.4",
     "youtube-dl-exec": "^2.4.0",
