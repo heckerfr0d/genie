@@ -12,11 +12,10 @@
   "dependencies": {
     "@iamtraction/google-translate": "^2.0.1",
     "bing-chat": "^0.2.3",
+    "chatgpt": "^5.2.2",
     "google-tts-api": "^2.0.2",
-    "ora": "^6.3.0",
     "qrcode": "^1.5.1",
     "whatsapp-web.js": "^1.18.4",
-    "youtube-dl-exec": "^2.4.0",
-    "ytsr": "^3.8.1"
+    "youtube-dl-exec": "^2.4.0"
   }
 }
