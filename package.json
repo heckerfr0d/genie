@@ -10,12 +10,16 @@
   "author": "heckerfr0d",
   "license": "ISC",
   "dependencies": {
+    "@google/generative-ai": "^0.2.1",
     "@iamtraction/google-translate": "^2.0.1",
-    "bing-chat": "^0.2.3",
-    "chatgpt": "^5.2.2",
+    "fluent-ffmpeg": "^2.1.2",
     "google-tts-api": "^2.0.2",
-    "qrcode": "^1.5.1",
-    "whatsapp-web.js": "^1.18.4",
-    "youtube-dl-exec": "^2.4.0"
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js#webpack-exodus",
+    "whisper-node": "^1.1.1",
+    "youtube-dl-exec": "^2.5.8"
+  },
+  "overrides": {
+    "puppeteer": "latest"
   }
 }
